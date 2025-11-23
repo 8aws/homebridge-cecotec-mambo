@@ -1,0 +1,1 @@
+{ "name": "MamboPlatform", "schema": { "type": "object", "properties": { "email": { "type": "string", "title": "Email", "required": true }, "password": { "type": "string", "title": "Password", "required": true }, "recipes": { "type": "array", "title": "Recetas" } } } }

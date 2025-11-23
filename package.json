@@ -1,0 +1,6 @@
+{ "name": "homebridge-cecotec-mambo", "version": "1.0.0", "description": "Plugin Homebridge para Cecotec Mambo", "main": "index.js", "keywords": ["homebridge-plugin"], "dependencies": { "hap-nodejs": "^0.12.0", "axios": "^1.6.0" } }
+{
+  "engines": {
+    "homebridge": ">=1.0.0"
+  }
+}
