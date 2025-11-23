@@ -10,5 +10,13 @@
   },
   "engines": {
     "homebridge": ">=1.0.0"
+  },
+  "homebridge": {
+    "name": "homebridge-cecotec-mambo",
+    "platforms": [
+      {
+        "platform": "MamboPlatform"
+      }
+    ]
   }
 }

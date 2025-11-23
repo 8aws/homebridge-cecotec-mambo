@@ -1,6 +1,5 @@
 const { PlatformAccessory, Characteristic, Service } = require('hap-nodejs');
 const axios = require('axios');
-const fs = require('fs'); // Para persistencia opcional si API falla
 
 class MamboPlatform {
   constructor(log, config, api) {
@@ -14,7 +13,7 @@ class MamboPlatform {
       this.login().then(() => {
         if (this.token) {
           this.config.token = this.token;
-          this.api.updatePlatformConfig('homebridge-mambo', 'MamboPlatform', this.config);
+          this.api.updatePlatformConfig(this.config);
           this.log('Token almacenado en config');
         }
       });
@@ -29,7 +28,7 @@ class MamboPlatform {
         password: this.config.password
       });
       this.token = data.token;
-      this.log('Login exitoso. Token: ' + this.token); // Copia desde logs/UI
+      this.log('Login exitoso');
     } catch (err) {
       this.log('Error login:', err.message);
     }
@@ -43,7 +42,7 @@ class MamboPlatform {
       res.data.devices.forEach(device => {
         const acc = new PlatformAccessory(device.name, 'CookingUnique', device.id);
         this.accessories.push(acc);
-        this.api.registerPlatformAccessories('homebridge-mambo', 'MamboPlatform', [acc]);
+        this.api.registerPlatformAccessories('homebridge-cecotec-mambo', 'MamboPlatform', [acc]);
         this.setupAccessory(acc);
       });
     }).catch(err => this.log('Error discover:', err.message));
@@ -72,11 +71,14 @@ class MamboPlatform {
       .onSet(async value => {
         const recipe = this.recipes[value];
         if (recipe) {
+          let recipeId;
           if (recipe.steps) {
-            const recipeId = await this.createCustomRecipe(acc.context.deviceId, recipe);
-            await this.startRecipe(acc.context.deviceId, recipeId);
+            recipeId = await this.createCustomRecipe(acc.context.deviceId, recipe);
           } else {
-            await this.startRecipe(acc.context.deviceId, recipe.id);
+            recipeId = recipe.id;
+          }
+          if (recipeId) {
+            await this.startRecipe(acc.context.deviceId, recipeId);
           }
           this.log(`${acc.displayName}: Iniciando ${recipe.name}`);
           recipeService.updateCharacteristic(Characteristic.Active, Characteristic.Active.ACTIVE);
@@ -92,7 +94,7 @@ class MamboPlatform {
           const status = await this.getStatus(acc.context.deviceId);
           const currentRecipe = this.recipes.find(r => r.id === status.currentRecipeId);
           if (currentRecipe) {
-            const updates = { name: 'Receta Editada', steps: [{...currentRecipe.steps[0], time: 15 }] };
+            const updates = { name: 'Receta Editada', steps: [{...currentRecipe.steps?.[0], time: 15 }] };
             await this.editRecipe(acc.context.deviceId, currentRecipe.id, updates);
             this.log(`${acc.displayName}: Receta editada`);
           }
@@ -129,7 +131,6 @@ class MamboPlatform {
     const weightSensorService = new Service.TemperatureSensor('Peso Actual');
     acc.addService(weightSensorService);
 
-    // Nuevo: Switch para refresh token en UI/HomeKit
     const refreshTokenService = new Service.Switch('Refresh Token');
     acc.addService(refreshTokenService);
 
@@ -139,8 +140,8 @@ class MamboPlatform {
           await this.login();
           if (this.token) {
             this.config.token = this.token;
-            this.api.updatePlatformConfig('homebridge-mambo', 'MamboPlatform', this.config);
-            this.log('Token refrescado y almacenado');
+            this.api.updatePlatformConfig(this.config);
+            this.log('Token refrescado');
           }
           refreshTokenService.updateCharacteristic(Characteristic.On, false);
         }
@@ -247,4 +248,6 @@ class MamboPlatform {
   }
 }
 
-module.exports = api => api.registerPlatform('homebridge-mambo', 'MamboPlatform', MamboPlatform);
+module.exports = (api) => {
+  api.registerPlatform('homebridge-cecotec-mambo', 'MamboPlatform', MamboPlatform);
+};
